@@ -68,8 +68,11 @@ def gerarWordRelTrimestral():
     if not caminho:
         doc.save(r""+r"C:\Users\pedror\Documents\Text.docx")
     else:
-
         doc.save(r""+caminho+"/Text.docx")
+
+    msg = QtWidgets.QMessageBox()
+    msg.information(
+        None, "Sucesso", "Realizado com sucesso", QtWidgets.QMessageBox.Ok)
 
 
 def analiseRel20():
@@ -91,6 +94,9 @@ def analiseRel20():
     for i in listaDisciplinas:
         filtradofinal.query('DISC_NOME == "' + i + '"').to_excel(r"" + path +
                                                                  "/"+i+" até "+dataFiltro.replace("/", "-")+".xlsx", index=False)
+    
+    msg = QtWidgets.QMessageBox()
+    msg.information(None, "Sucesso", "Realizado com sucesso", QtWidgets.QMessageBox.Ok)
 
 
 def pickArchiveNome():
