@@ -110,7 +110,7 @@ def importParaSisepc():
     colunasVinculo = ['numeroFS', 'criterioMedicao', 'sigla',
                       'IDatividade', 'IDatividade2', 'Responsavel', 'UA']
     colunasAvanco = ['IDatividade', 'numeroFS', 'WBS', 'Nivel', 'Sigla', 'descricao',
-                      'col7', 'col8', 'col9', 'col10', 'col11', 'dataExec', 'col13', 'Avanco', 'col15', 'col16', 'col17']
+                     'col7', 'col8', 'col9', 'col10', 'col11', 'dataExec', 'col13', 'Avanco', 'col15', 'col16', 'col17']
 
     dfCriarFS = pd.DataFrame(columns=colunasCriacao)
     auxCriarFS = pd.DataFrame(columns=colunasCriacao)
@@ -128,10 +128,16 @@ def importParaSisepc():
     df = df.rename(columns={'Activity ID': 'ID', 'Activity Status': 'Status', 'Activity Name': 'Name',
                    'BL1 Activity % Complete': 'BL1Percent', 'Activity % Complete': 'NewPercent', 'Actual Start': 'Start', 'Actual Finish': 'Finish'})
 
-    # AVANÇO INICIAL
-    
+    df['NewPercent'] = df['NewPercent'].str.rstrip('%')
+    df['BL1Percent'] = df['BL1Percent'].str.rstrip('%')
+    df['ID'] = df['ID'].str.lstrip()
+    df['NewPercent'] = pd.to_numeric(df['NewPercent'], downcast="float")
+    df['BL1Percent'] = pd.to_numeric(df['BL1Percent'], downcast="float")
+
+    # AVANÇO INICIAL ----------- OK
+
     av_parcialNovo = df.query(
-        '(BL1Percent < NewPercent) and (Status == "In Progress") and (BL1Percent == "0%")')
+        '(BL1Percent < NewPercent) and (Status == "In Progress") and (BL1Percent == 0)')
 
     # BLOCO - CRIAÇÃO DE FS DO PRIMEIRO FILTRO
 
@@ -154,11 +160,10 @@ def importParaSisepc():
     dfCriarFS = dfCriarFS.append(
         auxCriarFS, ignore_index=False, verify_integrity=False, sort=False)
 
-
-    # AVANÇO INICIAL E FINAL
+    # AVANÇO INICIAL E FINAL ----------- OK
 
     av_totalNovo = df.query(
-        '(BL1Percent < NewPercent) and (Status == "Completed") and (BL1Percent == "0%")')
+        '(BL1Percent < NewPercent) and (Status == "Completed") and (BL1Percent == 0)')
 
     # BLOCO - CRIAÇÃO DE FS DO SEGUNDO FILTRO
 
@@ -189,33 +194,118 @@ def importParaSisepc():
     dfVinculo = dfVinculo.fillna("")
     dfVinculo['IDatividade'] = dfVinculo['numeroFS']
 
-    # A PARTIR DAQUI NÃO PRECISA MAIS CRIAR FS SÓ AVANÇO
-    
+    # A PARTIR DAQUI NÃO PRECISA MAIS CRIAR FS, SÓ AVANÇO
+
     #             AVANÇO PRIMEIRO FILTRO
     if av_parcialNovo.empty:
         print("pular filtro 1")
     else:
-        print("pular")
         auxAvanco['IDatividade'] = av_parcialNovo['ID']
         auxAvanco['numeroFS'] = av_parcialNovo['ID']
         auxAvanco['WBS'] = auxAvanco['WBS'].fillna('1.1.')
         auxAvanco['Nivel'] = auxAvanco['Nivel'].fillna('2')
         auxAvanco['Sigla'] = auxAvanco['Sigla'].fillna('1.1.')
+        auxAvanco['descricao'] = auxAvanco['descricao'].fillna(
+            'AVANÇO CRONOGRAMA')
+        auxAvanco['dataExec'] = av_parcialNovo['Start']
+        auxAvanco['Avanco'] = av_parcialNovo['NewPercent']
+        auxAvanco = auxAvanco.fillna('')
 
+        dfAvanco = dfAvanco.append(
+            auxAvanco, ignore_index=False, verify_integrity=False, sort=False)
 
-        ########### CONTINUUUUUUUUUUUUUUUUAR AQUIIII
-    
-    
+    #             AVANÇO SEGUNDO FILTRO
 
+    auxAvanco = pd.DataFrame(columns=colunasAvanco)
 
-    #AVANÇO PARCIAL (NO DATA DATE)
+    if av_totalNovo.empty:
+        print("pular filtro 2")
+    else:
+        auxAvanco['IDatividade'] = av_totalNovo['ID']
+        auxAvanco['numeroFS'] = av_totalNovo['ID']
+        auxAvanco['WBS'] = auxAvanco['WBS'].fillna('1.1.')
+        auxAvanco['Nivel'] = auxAvanco['Nivel'].fillna('2')
+        auxAvanco['Sigla'] = auxAvanco['Sigla'].fillna('1.1.')
+        auxAvanco['descricao'] = auxAvanco['descricao'].fillna(
+            'AVANÇO CRONOGRAMA')
+        auxAvanco['dataExec'] = av_totalNovo['Start']
+        auxAvanco['Avanco'] = auxAvanco['Avanco'].fillna('1')
+        auxAvanco = auxAvanco.fillna('')
+
+        dfAvanco = dfAvanco.append(
+            auxAvanco, ignore_index=False, verify_integrity=False, sort=False)
+        auxAvanco = pd.DataFrame(columns=colunasAvanco)
+
+        auxAvanco['IDatividade'] = av_totalNovo['ID']
+        auxAvanco['numeroFS'] = av_totalNovo['ID']
+        auxAvanco['WBS'] = auxAvanco['WBS'].fillna('1.1.')
+        auxAvanco['Nivel'] = auxAvanco['Nivel'].fillna('2')
+        auxAvanco['Sigla'] = auxAvanco['Sigla'].fillna('1.1.')
+        auxAvanco['descricao'] = auxAvanco['descricao'].fillna(
+            'AVANÇO CRONOGRAMA')
+        auxAvanco['dataExec'] = av_totalNovo['Finish']
+        auxAvanco['Avanco'] = auxAvanco['Avanco'].fillna('100')
+        auxAvanco = auxAvanco.fillna('')
+
+        dfAvanco = dfAvanco.append(
+            auxAvanco, ignore_index=False, verify_integrity=False, sort=False)
+
+    # AVANÇO PARCIAL (NO DATA DATE) - TERCEIRO FILTRO
     av_parcial = df.query(
-        '(BL1Percent < NewPercent) and (Status == "In Progress") and (BL1Percent != "0%")')
+        '(BL1Percent < NewPercent) and (Status == "In Progress") and (BL1Percent != 0)')
 
-    #AVANÇO FINAL (NO FINISH)
+    auxAvanco = pd.DataFrame(columns=colunasAvanco)
+
+    if av_parcial.empty:
+        print("pular filtro 3")
+    else:
+        auxAvanco['IDatividade'] = av_parcial['ID']
+        auxAvanco['numeroFS'] = av_parcial['ID']
+        auxAvanco['WBS'] = auxAvanco['WBS'].fillna('1.1.')
+        auxAvanco['Nivel'] = auxAvanco['Nivel'].fillna('2')
+        auxAvanco['Sigla'] = auxAvanco['Sigla'].fillna('1.1.')
+        auxAvanco['descricao'] = auxAvanco['descricao'].fillna(
+            'AVANÇO CRONOGRAMA')
+        auxAvanco['dataExec'] = dataDate
+        auxAvanco['Avanco'] = av_parcial['NewPercent']
+        auxAvanco = auxAvanco.fillna('')
+
+        dfAvanco = dfAvanco.append(
+            auxAvanco, ignore_index=False, verify_integrity=False, sort=False)
+
+    # AVANÇO FINAL (NO FINISH)
 
     av_total = df.query(
-        '(BL1Percent < NewPercent) and (Status == "Completed") and (BL1Percent != "0%")')
+        '(BL1Percent < NewPercent) and (Status == "Completed") and (BL1Percent > 0)')
+
+    auxAvanco = pd.DataFrame(columns=colunasAvanco)
+
+    if av_total.empty:
+        print("pular filtro 4")
+    else:
+        auxAvanco['IDatividade'] = av_total['ID']
+        auxAvanco['numeroFS'] = av_total['ID']
+        auxAvanco['WBS'] = auxAvanco['WBS'].fillna('1.1.')
+        auxAvanco['Nivel'] = auxAvanco['Nivel'].fillna('2')
+        auxAvanco['Sigla'] = auxAvanco['Sigla'].fillna('1.1.')
+        auxAvanco['descricao'] = auxAvanco['descricao'].fillna(
+            'AVANÇO CRONOGRAMA')
+        auxAvanco['dataExec'] = av_total['Finish']
+        auxAvanco['Avanco'] = auxAvanco['Avanco'].fillna('100')
+        auxAvanco = auxAvanco.fillna('')
+
+        dfAvanco = dfAvanco.append(
+            auxAvanco, ignore_index=False, verify_integrity=False, sort=False)
+
+    dfAvanco = dfAvanco.query('dataExec != ""')
+
+    salvar = pd.ExcelWriter(
+        r'I:\PLANEJAMENTO\SUL\15. USUÁRIOS\PEDRO\Importar SISEPC no Primavera\Importacao.xlsx')
+    dfCriarFS.to_excel(salvar, index=False, sheet_name="Cria FS")
+    dfVinculo.to_excel(salvar, index=False, sheet_name="Vinculo FS")
+    dfAvanco.to_excel(salvar, index=False, sheet_name="Avanços")
+
+    salvar.save()
 
 
 # escolha .xls* ou .csv do arquivo pra importar
