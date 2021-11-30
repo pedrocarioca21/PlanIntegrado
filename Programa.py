@@ -86,7 +86,11 @@ def analiseRel20():
         r""+caminhoArquivo[0], sheet_name="Novo Relatório")
 
     filtradofinal = dataframe.query(
-        'DT_EXECUCAO == "" and STATUS == "OK" and SIGLA != "1.1." and DT_PROGRAMACAO <= "' + dataFiltro + '"')
+        'DT_EXECUCAO == "" and STATUS == "OK" and DT_PROGRAMACAO <= "' + dataFiltro + '"')
+    
+    filtradofinal = filtradofinal.drop(columns=['PASTA_TH', 'PONDERACAO_PREVISTO', 'SEMANA_EXEC', 'SEMANA_PROG'])
+
+    # Remover colunas PASTA_TH, PONDERACAO_PREVISTO, SEMANA_EXEC, SEMANA_PROG
 
     listaDisciplinas = filtradofinal['DISC_NOME'].unique().tolist()
 
@@ -120,8 +124,8 @@ def importParaSisepc():
 
     # BLOCO DE LEITURA DO ARQUIVO .CSV
 
-    caminho = r"I:\PLANEJAMENTO\SUL\15. USUÁRIOS\PEDRO\Importar SISEPC no Primavera\report.csv"
-    df = pd.read_csv(caminho, header=1, skipfooter=1, quotechar='"',
+    caminho = pickArchive()
+    df = pd.read_csv(r""+caminho[0], header=1, skipfooter=1, quotechar='"',
                      sep=";", encoding="iso8859-1", engine="python")
 
     df = df.fillna('')
@@ -299,8 +303,10 @@ def importParaSisepc():
 
     dfAvanco = dfAvanco.query('dataExec != ""')
 
+    path = chooseSavePath()
+
     salvar = pd.ExcelWriter(
-        r'I:\PLANEJAMENTO\SUL\15. USUÁRIOS\PEDRO\Importar SISEPC no Primavera\Importacao.xlsx')
+        r""+path+'\Importacao.xlsx')
     dfCriarFS.to_excel(salvar, index=False, sheet_name="Cria FS")
     dfVinculo.to_excel(salvar, index=False, sheet_name="Vinculo FS")
     dfAvanco.to_excel(salvar, index=False, sheet_name="Avanços")
